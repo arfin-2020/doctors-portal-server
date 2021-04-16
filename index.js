@@ -5,7 +5,7 @@ const cors = require('cors');
 const fs = require('fs-extra');
 
 const app = express()
-const port = 5000
+const port = 5050
 require('dotenv').config()
 
 app.use(express.static('doctors'));
@@ -26,6 +26,7 @@ app.get('/', (req, res) => {
   client.connect(err => {
     const appointmentCollection = client.db("doctorsportal").collection("appointments");
     const doctorCollection = client.db("doctorsportal").collection("docotrs");
+    
     app.post('/addAppointment',(req,res)=>{
         const appointment = req.body;
         console.log(appointment)
@@ -67,32 +68,32 @@ app.get('/', (req, res) => {
         const filePath = `${__dirname}/doctors/${file.name}`
         console.log(name,email,file);
         file.mv(filePath,error =>{
-            if(error){
-                console.log('error',error)
-                res.status(500).send({msg: 'Failed to upload Image'});
-            }
-            var newImg  = fs.readFileSync(filePath)
-            const encImg = newImg.toString('base64')
-
-            var image = {
-                contentType: file.mimetype,
-                size: file.size,
-                img: Buffer.from(encImg, 'base64')
-            };
-            
-            doctorCollection.insertOne({name,email,image})
-            .then(result =>{
-                fs.remove(filePath,err =>{
-                    if(err){
-                        console.log(err)
-                        res.status(500).send({msg: 'Failed to upload Image'}); 
-                    }
-                    res.send(result.insertedCount > 0)
+            if(err){
+                console.log(err)
+                res.status(500).send({msg:'failed to upload Image'})
+              }
+      
+              const newImg  = fs.readFileSync(filePath)
+              const encImg = newImg.toString('base64')
+      
+              var image = {
+                contentType: req.files.file.mimetype,
+                size: req.files.file.size,
+                img: Buffer(encImg, 'base64')
+              };  
+                doctorCollection.insertOne({name,position,image})
+                .then(result =>{
+                  fs.remove(filePath,error =>{
+                      if(error){
+                        console.log(error)
+                        res.status(500).send({msg:'failed to upload Image'})
+                      }
+                      res.send(result.insertedCount > 0)
+                  })
                 })
-            })
-            // return res.send({name:file.name, path:`/${file.name}`});
         })
     })
+
     app.get('/doctors', (req, res) => {
         doctorCollection.find({})
             .toArray((err, documents) => {
@@ -105,10 +106,7 @@ app.get('/', (req, res) => {
             .toArray((error,doctors)=>{
                 res.send(doctors.length > 0)
             })
-        })
-        
-    
-        
+        })   
   });
 
   app.listen(process.env.PORT||port)
