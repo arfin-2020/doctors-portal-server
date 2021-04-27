@@ -14,8 +14,6 @@ app.use(fileUpload());
 const uri = `mongodb+srv://${process.env.DB_USER}:${process.env.DB_PASS}@cluster0.r5j5a.mongodb.net/${process.env.DB_NAME}?retryWrites=true&w=majority`;
 const client = new MongoClient(uri, { useNewUrlParser: true, useUnifiedTopology: true });
 
-
-
 app.use(cors());
 app.use(express.json());
 
@@ -29,17 +27,15 @@ app.get('/', (req, res) => {
     
     app.post('/addAppointment',(req,res)=>{
         const appointment = req.body;
-        console.log(appointment)
         appointmentCollection.insertOne(appointment)
         .then(result =>{
-            res.send(result.insertedCount>0)
+            res.send(result.insertedCount > 0)
         })
     })
 
     app.post('/appointmentsByDate',(req,res)=>{
         const date= req.body;
         const email = req.body.email;
-        // console.log(date.date)
         doctorCollection.find({email:email})
         .toArray((error,doctors) =>{
             const filter = {date:date.date}
@@ -65,33 +61,25 @@ app.get('/', (req, res) => {
         const file = req.files.file;
         const name = req.body.name;
         const email = req.body.email;
-        const filePath = `${__dirname}/doctors/${file.name}`
-        console.log(name,email,file);
-        file.mv(filePath,error =>{
-            if(err){
-                console.log(err)
-                res.status(500).send({msg:'failed to upload Image'})
-              }
-      
-              const newImg  = fs.readFileSync(filePath)
+              const newImg  = file.data
               const encImg = newImg.toString('base64')
       
               var image = {
-                contentType: req.files.file.mimetype,
-                size: req.files.file.size,
-                img: Buffer(encImg, 'base64')
+                contentType: file.mimetype,
+                size: file.size,
+                img: Buffer.from(encImg, 'base64')
               };  
-                doctorCollection.insertOne({name,position,image})
+                doctorCollection.insertOne({name,email,image})
                 .then(result =>{
-                  fs.remove(filePath,error =>{
-                      if(error){
-                        console.log(error)
-                        res.status(500).send({msg:'failed to upload Image'})
-                      }
+                //   fs.remove(filePath,error =>{
+                //       if(error){
+                //         console.log(error)
+                //         res.status(500).send({msg:'failed to upload Image'})
+                //       }
                       res.send(result.insertedCount > 0)
-                  })
-                })
-        })
+                //   })
+              })
+        // })
     })
 
     app.get('/doctors', (req, res) => {
